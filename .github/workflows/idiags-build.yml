@@ -208,11 +208,11 @@ jobs:
           sed -i 's/Purslane Tech Pte. Ltd./STAR/g' flutter/lib/desktop/pages/desktop_setting_page.dart
           sed -i "s/translate('Slogan_tip')/'iDiags Assist'/g" flutter/lib/desktop/pages/desktop_setting_page.dart
           sed -i "s#launchUrl(Uri.parse('https://rustdesk.com'))#launchUrl(Uri.parse('https://idiags.xyz'))#g" flutter/lib/common.dart
-          # sweep ALL rustdesk.com domains -> idiags.xyz (dart + rust), убирает privacy/website/docs/api ссылки
-          grep -rl "rustdesk.com" flutter/lib --include=*.dart | xargs -r sed -i "s#rustdesk.com#idiags.xyz#g"
-          grep -rl "rustdesk.com" src libs --include=*.rs | xargs -r sed -i "s#rustdesk.com#idiags.xyz#g"
-          echo "== iDiags branding applied =="; grep -n APP_NAME libs/hbb_common/src/config.rs | head -1
-          echo "остаточные rustdesk.com:"; grep -rc "rustdesk.com" flutter/lib src libs --include=*.dart --include=*.rs 2>/dev/null | grep -v ":0" | head
+          # sweep ALL rustdesk.com domains -> idiags.xyz (dart + rust); pipefail-safe (|| true)
+          (grep -rl "rustdesk.com" flutter/lib --include=*.dart || true) | xargs -r sed -i "s#rustdesk.com#idiags.xyz#g" || true
+          (grep -rl "rustdesk.com" src libs --include=*.rs || true) | xargs -r sed -i "s#rustdesk.com#idiags.xyz#g" || true
+          echo "== iDiags branding applied =="
+          (grep -n APP_NAME libs/hbb_common/src/config.rs || true) | head -1 || true
       - name: Restore bridge files
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
