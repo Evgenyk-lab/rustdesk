@@ -151,6 +151,9 @@ jobs:
         run: |
           # app name
           sed -i 's/RwLock::new("RustDesk".to_owned())/RwLock::new("iDiags".to_owned())/' libs/hbb_common/src/config.rs
+          # два сервера + наш ключ в сборку (client-side failover Севас->moscow)
+          sed -i 's#"rs-ny.rustdesk.com"#"rv.idiags.xyz", "rv2.idiags.xyz"#' libs/hbb_common/src/config.rs
+          sed -i 's#OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=#rWcO6oXUda0KMQnPuuzD1uULO6iEUA4bVrUB+9voLLA=#' libs/hbb_common/src/config.rs
           # exe metadata
           sed -i 's/RustDesk Remote Desktop/iDiags Assist/g' flutter/windows/runner/Runner.rc
           sed -i 's/VALUE "ProductName", "RustDesk"/VALUE "ProductName", "iDiags Assist"/g' flutter/windows/runner/Runner.rc
