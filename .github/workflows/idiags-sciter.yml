@@ -83,6 +83,7 @@ jobs:
           (grep -rl "Purslane Tech Pte. Ltd." src/ui || true) | xargs -r sed -i "s/Purslane Tech Pte. Ltd./STAR/g" || true
           python3 -c "import re; b=open('branding/idiags/logo128.b64').read().strip(); s=open('src/ui.rs').read(); s=re.sub(r'data:image/png;base64,[A-Za-z0-9+/=]+','data:image/png;base64,'+b,s); open('src/ui.rs','w').write(s)"
           (grep -rl "powered_by_me" src/lang || true) | xargs -r sed -i "s/Powered by RustDesk/iDiags Assist/g; s/Основано на RustDesk/iDiags Assist/g" || true
+          sed -i "s/height:1.6em; line-height:1.6em/min-height:1.6em; line-height:1.6em/g" src/ui/index.tis || true
           echo "== iDiags sciter branding =="
 
       - name: Install LLVM and Clang
