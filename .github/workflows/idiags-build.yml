@@ -169,16 +169,15 @@ jobs:
               vcpkg-triplet: x64-windows-static,
               build-args: "--vram",
             }
-          - {
-              target: aarch64-pc-windows-msvc,
-              os: windows-11-arm,
-              arch: aarch64,
-              flutter-arch: arm64,
-              vcpkg-triplet: arm64-windows-static,
-              # vram is x86/x64-only (NVENC needs CUDA, Intel MediaSDK needs __rdtsc);
-              # no NV/Intel/AMD hardware exists on Windows-on-ARM, so vram stays disabled here.
-              build-args: "",
-            }
+          # arm64 отключён на время итераций (не публикуем): экономит раннер и параллельный vcpkg-прогон.
+          # - {
+          #     target: aarch64-pc-windows-msvc,
+          #     os: windows-11-arm,
+          #     arch: aarch64,
+          #     flutter-arch: arm64,
+          #     vcpkg-triplet: arm64-windows-static,
+          #     build-args: "",
+          #   }
     steps:
       - name: Export GitHub Actions cache environment variables
         uses: actions/github-script@d7906e4ad0b1822421a7e6a35d5ca353c962f410 # v6
@@ -220,6 +219,10 @@ jobs:
           # версия 1.4.11 (Cargo.toml + Cargo.lock, иначе cargo build --locked падает)
           sed -i 's#^version = "1.4.9"#version = "1.4.11"#' Cargo.toml || true
           sed -i '/^name = "rustdesk"$/{n;s/^version = "1.4.9"$/version = "1.4.11"/}' Cargo.lock || true
+          # БЫСТРЫЙ ПРОФИЛЬ (только для тестовых итераций): LTO off -> Rust-компиляция ~вдвое быстрее.
+          # Для финального релиза вернуть lto=true, codegen-units=1.
+          sed -i 's/^lto = true$/lto = false/' Cargo.toml || true
+          sed -i 's/^codegen-units = 1$/codegen-units = 16/' Cargo.toml || true
           # iDiags DIAGNOSTIC (временно): перехват паники в %TEMP%\idiags-crash.log - panic=abort иначе теряет причину
           HOOK='    std::panic::set_hook(Box::new(|info| { log::error!("iDiags PANIC: {}", info); if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(std::env::temp_dir().join("idiags-crash.log")) { use std::io::Write; let _ = writeln!(f, "iDiags PANIC: {}", info); } }));'
           export HOOK
@@ -466,7 +469,8 @@ jobs:
         # Builds the MSI for the matrix arch. res/msi (WiX v4 + native CustomActions) carries
         # both x64 and ARM64 platform configs; WcaUtil/DUtil ship arm64 libs. msbuild platform
         # is x64 / ARM64; the produced Package.msi is globbed since its bin/<platform>/ dir varies.
-        if: env.UPLOAD_ARTIFACT == 'true'
+        # iDiags: MSI отключён - мы пакуем через NSIS, MSI не используем (экономит ~1 мин + WiX).
+        if: false
         run: |
           pushd ./res/msi
           python preprocess.py --arp -d ../../rustdesk
