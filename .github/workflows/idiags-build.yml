@@ -255,6 +255,9 @@ jobs:
           sed -i "s/bind.mainUriPrefixSync().contains('rustdesk')) {/true) {/" flutter/lib/desktop/pages/desktop_home_page.dart || true
           sed -i 's/final isToUpdate = (isWindows || isMacOS) \&\& bind.mainIsInstalled();/final isToUpdate = false;/' flutter/lib/desktop/pages/desktop_home_page.dart || true
           grep -n 'isToUpdate = false' flutter/lib/desktop/pages/desktop_home_page.dart | head -1 || true
+          # Flutter: Dart checkUpdate() целиком под if (!bind.isCustomClient()) - кастом-клиент не делает ни запроса, ни подписки на событие. Снимаем.
+          python3 -c "p='flutter/lib/common.dart'; s=open(p,encoding='utf-8').read(); a='void checkUpdate() {'+chr(10)+'  if (!isWeb) {'+chr(10)+'    if (!bind.isCustomClient()) {'; b='void checkUpdate() {'+chr(10)+'  if (!isWeb) {'+chr(10)+'    if (true) {'; s=s.replace(a,b,1); open(p,'w',encoding='utf-8').write(s)"
+          grep -nA2 'void checkUpdate() {' flutter/lib/common.dart | head -3 || true
           # iDiags: fully remove "powered by RustDesk" line (Flutter)
           sed -i "s/bind.mainGetBuildinOption(key: \"hide-powered-by-me\") == 'Y'/true/" flutter/lib/common.dart || true
           echo "== iDiags branding applied =="
