@@ -243,6 +243,18 @@ jobs:
           # версия в заголовке окна (Flutter): iDiags 1.4.11 (setTitle внутри async-замыкания, await допустим)
           sed -i 's/windowManager.setTitle(getWindowName());/windowManager.setTitle("${getWindowName()} ${await bind.mainGetVersion()}");/' flutter/lib/main.dart || true
           grep -n 'mainGetVersion()}' flutter/lib/main.dart | head -1 || true
+          # версия ВНУТРИ интерфейса (у главного окна Flutter системная рамка скрыта, setTitle не виден): строка под «Ваш рабочий стол»
+          VER_LINE='              Align(alignment: Alignment.centerLeft, child: FutureBuilder<String>(future: bind.mainGetVersion(), builder: (c, s) => Text(s.hasData ? "iDiags ${s.data}" : "", style: Theme.of(context).textTheme.bodySmall))),'
+          export VER_LINE
+          python3 -c "import os; p='flutter/lib/desktop/pages/desktop_home_page.dart'; s=open(p,encoding='utf-8').read(); a='translate(\"Your Desktop\"),'; i=s.find(a); e='\n                ),\n'; j=s.find(e,i); s=(s[:j+len(e)]+os.environ['VER_LINE']+chr(10)+s[j+len(e):]) if (i>=0 and j>=0) else s; open(p,'w',encoding='utf-8').write(s)"
+          grep -n 'iDiags \${s.data}' flutter/lib/desktop/pages/desktop_home_page.dart | head -1 || true
+          # кнопка «Скачать» в карточке обновления -> лендинг (idiags.xyz/download не существует)
+          sed -i "s#Uri.parse('https://idiags.xyz/download')#Uri.parse('https://idiags.xyz/')#" flutter/lib/desktop/pages/desktop_home_page.dart || true
+          # карточка обновления во Flutter: снять гейты кастом-клиента (isCustomClient + префикс 'rustdesk'), кнопка всегда «Скачать» -> лендинг
+          sed -i 's/if (!bind.isCustomClient() \&\&/if (true \&\&/' flutter/lib/desktop/pages/desktop_home_page.dart || true
+          sed -i "s/bind.mainUriPrefixSync().contains('rustdesk')) {/true) {/" flutter/lib/desktop/pages/desktop_home_page.dart || true
+          sed -i 's/final isToUpdate = (isWindows || isMacOS) \&\& bind.mainIsInstalled();/final isToUpdate = false;/' flutter/lib/desktop/pages/desktop_home_page.dart || true
+          grep -n 'isToUpdate = false' flutter/lib/desktop/pages/desktop_home_page.dart | head -1 || true
           # iDiags: fully remove "powered by RustDesk" line (Flutter)
           sed -i "s/bind.mainGetBuildinOption(key: \"hide-powered-by-me\") == 'Y'/true/" flutter/lib/common.dart || true
           echo "== iDiags branding applied =="
