@@ -61,6 +61,13 @@ class ChatModel with ChangeNotifier {
 
   bool isConnManager = false;
 
+  // iDiags: text chat shown as a docked right-side panel (desktop) instead of a floating overlay
+  RxBool isChatDocked = false.obs;
+  void toggleChatDocked() {
+    isChatDocked.value = !isChatDocked.value;
+    notifyListeners();
+  }
+
   RxBool isWindowFocus = true.obs;
   BlockableOverlayState _blockableOverlayState = BlockableOverlayState();
   final Rx<VoiceCallStatus> _voiceCallStatus = Rx(VoiceCallStatus.notStarted);
