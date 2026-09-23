@@ -113,7 +113,10 @@ jobs:
             export PATH="$USERPROFILE/.cargo/bin:$PATH"
           fi
           rustup toolchain install "$TC" --force-non-host --profile minimal --component rustfmt --no-self-update
-          rustup default "$TC"
+          # 'rustup default' re-runs the host check (no --force-non-host); select the toolchain for all
+          # later steps via RUSTUP_TOOLCHAIN instead, which the proxies honor without the host guard.
+          echo "RUSTUP_TOOLCHAIN=$TC" >> "$GITHUB_ENV"
+          export RUSTUP_TOOLCHAIN="$TC"
           rustc --version
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
