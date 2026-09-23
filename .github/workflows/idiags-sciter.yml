@@ -27,7 +27,7 @@ env:
   # 2. Update the `VCPKG_COMMIT_ID` in `ci.yml` and `playground.yml`.
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # 2025.01.13, got "/opt/artifacts/vcpkg/vcpkg: No such file or directory" with latest version
-  VERSION: "1.4.9"
+  VERSION: "1.4.10"
   NDK_VERSION: "r28c"
   #signing keys env variable checks
   ANDROID_SIGNING_KEY: "${{ secrets.ANDROID_SIGNING_KEY }}"
@@ -86,6 +86,11 @@ jobs:
           python3 -c "import re; b=open('branding/idiags/logo128.b64').read().strip(); s=open('src/ui.rs').read(); s=re.sub(r'data:image/png;base64,[A-Za-z0-9+/=]+','data:image/png;base64,'+b,s); open('src/ui.rs','w').write(s)"
           (grep -rl "powered_by_me" src/lang || true) | xargs -r sed -i "s/Powered by RustDesk/iDiags Assist/g; s/Основано на RustDesk/iDiags Assist/g" || true
           sed -i "s/height:1.6em; line-height:1.6em/min-height:1.6em; line-height:1.6em/g" src/ui/index.tis || true
+          # B: одноразовый пароль ПЕРСИСТЕНТНЫЙ (сохраняем на диск, переживает перезапуск) + бамп версии
+          sed -i 's#^version = "1.4.9"#version = "1.4.10"#' Cargo.toml || true
+          sed -i 's#RwLock::new(get_auto_password())#RwLock::new({ let __p = Config::get_option("idiags-otp"); if __p.is_empty() { let __np = get_auto_password(); Config::set_option("idiags-otp".to_owned(), __np.clone()); __np } else { __p } })#' libs/hbb_common/src/password_security.rs || true
+          sed -i 's#\*TEMPORARY_PASSWORD.write().unwrap() = get_auto_password();#{ let __np = get_auto_password(); Config::set_option("idiags-otp".to_owned(), __np.clone()); *TEMPORARY_PASSWORD.write().unwrap() = __np; }#' libs/hbb_common/src/password_security.rs || true
+          grep -n "idiags-otp" libs/hbb_common/src/password_security.rs | head -2
           echo "== iDiags sciter branding =="
 
       - name: Install LLVM and Clang
