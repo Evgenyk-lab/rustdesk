@@ -41,6 +41,9 @@ env:
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
 
   bridge:
