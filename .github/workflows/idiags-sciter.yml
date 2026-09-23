@@ -116,6 +116,10 @@ jobs:
           # версия в заголовке окна (Sciter): iDiags 1.4.11
           sed -i 's/frame.set_title(&crate::get_app_name());/frame.set_title(\&format!("{} {}", crate::get_app_name(), crate::VERSION));/' src/ui.rs || true
           grep -n 'crate::VERSION' src/ui.rs | head -1 || true
+          # legacy: уведомление об обновлении сделать КЛИКАБЕЛЬНЫМ (у кастом-клиента RustDesk показывает только текст) и вести на лендинг
+          sed -i 's#? <div style="font-size: 1em; font-weight: normal; text-align: left; padding-top: 1em;">{translate(.Enable .*administrator for the latest version\..)}</div>#? <div \#install-me.link>{translate("Click to " + update_or_download)}</div>#' src/ui/index.tis || true
+          sed -i 's#https://idiags.xyz/download#https://idiags.xyz/#g' src/ui/index.tis || true
+          grep -c 'install-me.link' src/ui/index.tis || true
           # iDiags: fully hide "powered by" in sciter UI (was only renamed above)
           sed -i 's/handler.get_builtin_option("hide-powered-by-me") != "Y"/false/' src/ui/index.tis || true
           echo "== iDiags sciter branding =="
