@@ -92,15 +92,6 @@ jobs:
           # версия 1.4.11 (Cargo.toml + Cargo.lock, иначе cargo build --locked падает)
           sed -i 's#^version = "1.4.9"#version = "1.4.11"#' Cargo.toml || true
           sed -i '/^name = "rustdesk"$/{n;s/^version = "1.4.9"$/version = "1.4.11"/}' Cargo.lock || true
-          # БЫСТРЫЙ ПРОФИЛЬ (только для тестовых итераций): LTO off -> Rust-компиляция ~вдвое быстрее.
-          # Для финального релиза вернуть lto=true, codegen-units=1.
-          sed -i 's/^lto = true$/lto = false/' Cargo.toml || true
-          sed -i 's/^codegen-units = 1$/codegen-units = 16/' Cargo.toml || true
-          # iDiags DIAGNOSTIC (временно): перехват паники в %TEMP%\idiags-crash.log - panic=abort иначе теряет причину
-          HOOK='    std::panic::set_hook(Box::new(|info| { log::error!("iDiags PANIC: {}", info); if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(std::env::temp_dir().join("idiags-crash.log")) { use std::io::Write; let _ = writeln!(f, "iDiags PANIC: {}", info); } }));'
-          export HOOK
-          python3 -c "import os; p='src/core_main.rs'; s=open(p,encoding='utf-8').read(); a='hbb_common::init_log(false, &log_name);'; s=(s.replace(a, a+chr(10)+os.environ['HOOK'],1) if a in s else s); open(p,'w',encoding='utf-8').write(s)"
-          grep -n 'idiags-crash.log' src/core_main.rs | head -1 || true
           sed -i 's#https://api.rustdesk.com/version/latest#https://api.idiags.xyz/version/latest#' libs/hbb_common/src/lib.rs || true
           # B: одноразовый пароль ПЕРСИСТЕНТНЫЙ (переживает перезапуск); регенерация кнопкой сохраняется
           # B v2: НИКАКОГО I/O в инициализаторе lazy_static (v1 роняла старт). Загрузка/первичное сохранение -
@@ -123,10 +114,6 @@ jobs:
           # legacy: при наличии обновления прятать InstallMe, иначе UpdateMe рисуется ниже и уходит за нижний край панели
           sed -i 's#{(!is_win || handler.is_installed() || disable_installation) ? "" : <InstallMe />}#{(!is_win || handler.is_installed() || disable_installation || software_update_url) ? "" : <InstallMe />}#' src/ui/index.tis || true
           grep -c 'disable_installation || software_update_url' src/ui/index.tis || true
-          # ДИАГНОСТИКА (временно): явные INFO-логи в проверке обновлений, чтобы видеть решение по версии и запись URL
-          python3 -c 'p="src/common.rs"; s=open(p,encoding="utf-8").read(); A=[("    let opt = LocalConfig::get_option(keys::OPTION_ENABLE_CHECK_UPDATE);","    log::info!(\"iDiags update: option enable-check-update={:?}\", opt);"),("    let bytes = latest_release_response.bytes().await?;","    log::info!(\"iDiags update: body={}\", String::from_utf8_lossy(&bytes));"),("    let latest_release_version = response_url.rsplit(\x27/\x27).next().unwrap_or_default();","    log::info!(\"iDiags update: latest={} ({}) current={} ({})\", latest_release_version, get_version_number(&latest_release_version), crate::VERSION, get_version_number(crate::VERSION));"),("        *SOFTWARE_UPDATE_URL.lock().unwrap() = response_url;","        log::info!(\"iDiags update: NEWER -> url set\");"),("        *SOFTWARE_UPDATE_URL.lock().unwrap() = \"\".to_string();","        log::info!(\"iDiags update: not newer -> cleared\");")]; [s:=s.replace(a,a+chr(10)+b,1) for a,b in A]; open(p,"w",encoding="utf-8").write(s)'
-          python3 -c 'p="src/ui.rs"; s=open(p,encoding="utf-8").read(); a="        crate::common::check_software_update();"; s=s.replace(a,"        log::info!(\"iDiags update: UI start (no args), calling check\");"+chr(10)+a,1); open(p,"w",encoding="utf-8").write(s)'
-          grep -c 'iDiags update:' src/common.rs src/ui.rs || true
           # iDiags: fully hide "powered by" in sciter UI (was only renamed above)
           sed -i 's/handler.get_builtin_option("hide-powered-by-me") != "Y"/false/' src/ui/index.tis || true
           echo "== iDiags sciter branding =="
