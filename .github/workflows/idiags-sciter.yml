@@ -120,6 +120,9 @@ jobs:
           sed -i 's#? <div style="font-size: 1em; font-weight: normal; text-align: left; padding-top: 1em;">{translate(.Enable .*administrator for the latest version\..)}</div>#? <div \#install-me.link>{translate("Click to " + update_or_download)}</div>#' src/ui/index.tis || true
           sed -i 's#https://idiags.xyz/download#https://idiags.xyz/#g' src/ui/index.tis || true
           grep -c 'install-me.link' src/ui/index.tis || true
+          # legacy: при наличии обновления прятать InstallMe, иначе UpdateMe рисуется ниже и уходит за нижний край панели
+          sed -i 's#{(!is_win || handler.is_installed() || disable_installation) ? "" : <InstallMe />}#{(!is_win || handler.is_installed() || disable_installation || software_update_url) ? "" : <InstallMe />}#' src/ui/index.tis || true
+          grep -c 'disable_installation || software_update_url' src/ui/index.tis || true
           # iDiags: fully hide "powered by" in sciter UI (was only renamed above)
           sed -i 's/handler.get_builtin_option("hide-powered-by-me") != "Y"/false/' src/ui/index.tis || true
           echo "== iDiags sciter branding =="
