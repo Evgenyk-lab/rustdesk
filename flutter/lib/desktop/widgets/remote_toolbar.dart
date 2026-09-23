@@ -2600,18 +2600,8 @@ class _ChatMenuState extends State<_ChatMenu> {
 
   @override
   Widget build(BuildContext context) {
-    if (isWeb) {
-      return buildTextChatButton();
-    } else {
-      return _IconSubmenuButton(
-          tooltip: 'Chat',
-          key: chatButtonKey,
-          svg: 'assets/chat.svg',
-          ffi: widget.ffi,
-          color: _ToolbarTheme.blueColor,
-          hoverColor: _ToolbarTheme.hoverBlueColor,
-          menuChildrenGetter: (_) => [textChat(), voiceCall()]);
-    }
+    // iDiags: single direct chat button (opens docked text chat). Voice call has its own button (_VoiceCallMenu).
+    return buildTextChatButton();
   }
 
   buildTextChatButton() {
@@ -2633,16 +2623,10 @@ class _ChatMenuState extends State<_ChatMenu> {
   }
 
   _textChatOnPressed() {
-    RenderBox? renderBox =
-        chatButtonKey.currentContext?.findRenderObject() as RenderBox?;
-    Offset? initPos;
-    if (renderBox != null) {
-      final pos = renderBox.localToGlobal(Offset.zero);
-      initPos = Offset(pos.dx, pos.dy + _ToolbarTheme.dividerHeight);
-    }
     widget.ffi.chatModel
         .changeCurrentKey(MessageKey(widget.ffi.id, ChatModel.clientModeID));
-    widget.ffi.chatModel.toggleChatOverlay(chatInitPos: initPos);
+    // iDiags: toggle docked side panel instead of floating overlay
+    widget.ffi.chatModel.toggleChatDocked();
   }
 
   voiceCall() {
