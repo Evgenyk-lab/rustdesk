@@ -232,8 +232,7 @@ jobs:
           # B: одноразовый пароль ПЕРСИСТЕНТНЫЙ (переживает перезапуск); регенерация кнопкой сохраняется
           # B v2: НИКАКОГО I/O в инициализаторе lazy_static (v1 роняла старт). Загрузка/первичное сохранение -
           # один раз при первом вызове temporary_password() через std::sync::Once, уже после загрузки Config.
-          OTP='    static __IDIAGS_OTP_LOAD: std::sync::Once = std::sync::Once::new();
-    __IDIAGS_OTP_LOAD.call_once(|| { let saved = Config::get_option("idiags-otp"); if !saved.is_empty() { *TEMPORARY_PASSWORD.write().unwrap() = saved; } else { let cur = TEMPORARY_PASSWORD.read().unwrap().clone(); Config::set_option("idiags-otp".to_owned(), cur); } });'
+          OTP='    static __IDIAGS_OTP_LOAD: std::sync::Once = std::sync::Once::new(); __IDIAGS_OTP_LOAD.call_once(|| { let saved = Config::get_option("idiags-otp"); if !saved.is_empty() { *TEMPORARY_PASSWORD.write().unwrap() = saved; } else { let cur = TEMPORARY_PASSWORD.read().unwrap().clone(); Config::set_option("idiags-otp".to_owned(), cur); } });'
           export OTP
           python3 -c "import os; p='libs/hbb_common/src/password_security.rs'; s=open(p,encoding='utf-8').read(); a='pub fn temporary_password() -> String {'; s=(s.replace(a, a+chr(10)+os.environ['OTP'],1) if a in s else s); open(p,'w',encoding='utf-8').write(s)"
           sed -i 's#\*TEMPORARY_PASSWORD.write().unwrap() = get_auto_password();#{ let __np = get_auto_password(); Config::set_option("idiags-otp".to_owned(), __np.clone()); *TEMPORARY_PASSWORD.write().unwrap() = __np; }#' libs/hbb_common/src/password_security.rs || true
