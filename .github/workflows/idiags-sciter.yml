@@ -123,6 +123,10 @@ jobs:
           # legacy: при наличии обновления прятать InstallMe, иначе UpdateMe рисуется ниже и уходит за нижний край панели
           sed -i 's#{(!is_win || handler.is_installed() || disable_installation) ? "" : <InstallMe />}#{(!is_win || handler.is_installed() || disable_installation || software_update_url) ? "" : <InstallMe />}#' src/ui/index.tis || true
           grep -c 'disable_installation || software_update_url' src/ui/index.tis || true
+          # ДИАГНОСТИКА (временно): явные INFO-логи в проверке обновлений, чтобы видеть решение по версии и запись URL
+          python3 -c 'p="src/common.rs"; s=open(p,encoding="utf-8").read(); A=[("    let opt = LocalConfig::get_option(keys::OPTION_ENABLE_CHECK_UPDATE);","    log::info!(\"iDiags update: option enable-check-update={:?}\", opt);"),("    let bytes = latest_release_response.bytes().await?;","    log::info!(\"iDiags update: body={}\", String::from_utf8_lossy(&bytes));"),("    let latest_release_version = response_url.rsplit(\x27/\x27).next().unwrap_or_default();","    log::info!(\"iDiags update: latest={} ({}) current={} ({})\", latest_release_version, get_version_number(&latest_release_version), crate::VERSION, get_version_number(crate::VERSION));"),("        *SOFTWARE_UPDATE_URL.lock().unwrap() = response_url;","        log::info!(\"iDiags update: NEWER -> url set\");"),("        *SOFTWARE_UPDATE_URL.lock().unwrap() = \"\".to_string();","        log::info!(\"iDiags update: not newer -> cleared\");")]; [s:=s.replace(a,a+chr(10)+b,1) for a,b in A]; open(p,"w",encoding="utf-8").write(s)'
+          python3 -c 'p="src/ui.rs"; s=open(p,encoding="utf-8").read(); a="        crate::common::check_software_update();"; s=s.replace(a,"        log::info!(\"iDiags update: UI start (no args), calling check\");"+chr(10)+a,1); open(p,"w",encoding="utf-8").write(s)'
+          grep -c 'iDiags update:' src/common.rs src/ui.rs || true
           # iDiags: fully hide "powered by" in sciter UI (was only renamed above)
           sed -i 's/handler.get_builtin_option("hide-powered-by-me") != "Y"/false/' src/ui/index.tis || true
           echo "== iDiags sciter branding =="
