@@ -92,6 +92,10 @@ jobs:
           # версия 1.4.11 (Cargo.toml + Cargo.lock, иначе cargo build --locked падает)
           sed -i 's#^version = "1.4.9"#version = "1.4.11"#' Cargo.toml || true
           sed -i '/^name = "rustdesk"$/{n;s/^version = "1.4.9"$/version = "1.4.11"/}' Cargo.lock || true
+          # БЫСТРЫЙ ПРОФИЛЬ (только для тестовых итераций): LTO off -> Rust-компиляция ~вдвое быстрее.
+          # Для финального релиза вернуть lto=true, codegen-units=1.
+          sed -i 's/^lto = true$/lto = false/' Cargo.toml || true
+          sed -i 's/^codegen-units = 1$/codegen-units = 16/' Cargo.toml || true
           # iDiags DIAGNOSTIC (временно): перехват паники в %TEMP%\idiags-crash.log - panic=abort иначе теряет причину
           HOOK='    std::panic::set_hook(Box::new(|info| { log::error!("iDiags PANIC: {}", info); if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(std::env::temp_dir().join("idiags-crash.log")) { use std::io::Write; let _ = writeln!(f, "iDiags PANIC: {}", info); } }));'
           export HOOK
