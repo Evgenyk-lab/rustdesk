@@ -14,6 +14,7 @@ import '../../common/widgets/remote_input.dart';
 import '../../common.dart';
 import '../../common/widgets/dialog.dart';
 import '../../common/widgets/toolbar.dart';
+import '../../common/widgets/chat_page.dart';
 import '../../models/model.dart';
 import '../../models/input_model.dart';
 import '../../models/platform_model.dart';
@@ -703,7 +704,8 @@ class _RemotePageState extends State<RemotePage>
         );
 
     bodyWidget() {
-      return Stack(
+      return Row(children: [
+        Expanded(child: Stack(
         children: [
           Container(
               color: kColorCanvas,
@@ -767,7 +769,13 @@ class _RemotePageState extends State<RemotePage>
             ],
           ),
         ],
-      );
+      )),
+        Obx(() => _ffi.chatModel.isChatDocked.value
+            ? SizedBox(
+                width: 320,
+                child: ChatPage(chatModel: _ffi.chatModel))
+            : const SizedBox.shrink()),
+      ]);
     }
 
     return Scaffold(
