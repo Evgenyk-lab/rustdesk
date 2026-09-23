@@ -99,12 +99,22 @@ jobs:
         with:
           version: ${{ env.LLVM_VERSION }}
 
+      # iDiags: install the 32-bit (i686) HOST nightly manually. rustup on current runner images
+      # refuses a non-host (32-bit) toolchain on a 64-bit machine without --force-non-host, which the
+      # dtolnay action cannot pass. The sciter build is a host build (no --target), so we keep i686 host.
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
-        with:
-          toolchain: nightly-2023-10-13-${{ matrix.job.target }} # must use nightly here, because of abi_thiscall feature required
-          targets: ${{ matrix.job.target }}
-          components: "rustfmt"
+        shell: bash
+        run: |
+          TC=nightly-2023-10-13-${{ matrix.job.target }} # nightly required for abi_thiscall feature
+          if ! command -v rustup >/dev/null 2>&1; then
+            curl --proto '=https' --tlsv1.2 --retry 10 --retry-connrefused -sSfL https://win.rustup.rs/x86_64 -o rustup-init.exe
+            ./rustup-init.exe --default-toolchain none --no-modify-path -y
+            echo "$USERPROFILE\\.cargo\\bin" >> "$GITHUB_PATH"
+            export PATH="$USERPROFILE/.cargo/bin:$PATH"
+          fi
+          rustup toolchain install "$TC" --force-non-host --profile minimal --component rustfmt --no-self-update
+          rustup default "$TC"
+          rustc --version
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32 # v2
         with:
