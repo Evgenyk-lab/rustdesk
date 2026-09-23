@@ -220,6 +220,13 @@ jobs:
           sed -i 's#RwLock::new(get_auto_password())#RwLock::new({ let __p = Config::get_option("idiags-otp"); if __p.is_empty() { let __np = get_auto_password(); Config::set_option("idiags-otp".to_owned(), __np.clone()); __np } else { __p } })#' libs/hbb_common/src/password_security.rs || true
           sed -i 's#\*TEMPORARY_PASSWORD.write().unwrap() = get_auto_password();#{ let __np = get_auto_password(); Config::set_option("idiags-otp".to_owned(), __np.clone()); *TEMPORARY_PASSWORD.write().unwrap() = __np; }#' libs/hbb_common/src/password_security.rs || true
           grep -n "idiags-otp" libs/hbb_common/src/password_security.rs | head -2
+          # iDiags: update endpoint -> api.idiags.xyz + enable update check for custom client
+          sed -i 's#https://api.rustdesk.com/version/latest#https://api.idiags.xyz/version/latest#' libs/hbb_common/src/lib.rs || true
+          sed -i '/pub fn check_software_update() {/{N;N;N;s/\n    if is_custom_client() {\n        return;\n    }//}' src/common.rs || true
+          grep -n "api.idiags.xyz" libs/hbb_common/src/lib.rs | head -1 || true
+          grep -A2 "pub fn check_software_update" src/common.rs | head -3 || true
+          # iDiags: fully remove "powered by RustDesk" line (Flutter)
+          sed -i "s/bind.mainGetBuildinOption(key: \"hide-powered-by-me\") == 'Y'/true/" flutter/lib/common.dart || true
           echo "== iDiags branding applied =="
           (grep -n APP_NAME libs/hbb_common/src/config.rs || true) | head -1 || true
       - name: Restore bridge files
