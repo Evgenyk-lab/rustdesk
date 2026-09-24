@@ -114,6 +114,9 @@ jobs:
           # legacy: при наличии обновления прятать InstallMe, иначе UpdateMe рисуется ниже и уходит за нижний край панели
           sed -i 's#{(!is_win || handler.is_installed() || disable_installation) ? "" : <InstallMe />}#{(!is_win || handler.is_installed() || disable_installation || software_update_url) ? "" : <InstallMe />}#' src/ui/index.tis || true
           grep -c 'disable_installation || software_update_url' src/ui/index.tis || true
+          # ЛОГ КАК АДМИН-ОПЦИЯ: по умолчанию info; файл-флаг <log_path>/debug.on включает debug (RUST_LOG по-прежнему приоритетнее)
+          sed -i 's#if let Ok(x) = Logger::try_with_env_or_str("debug,reqwest=warn,rustls=warn,webrtc-sctp=warn,webrtc=warn") {#let __lvl = if config::Config::log_path().join("debug.on").exists() { "debug,reqwest=warn,rustls=warn,webrtc-sctp=warn,webrtc=warn" } else { "info,reqwest=warn,rustls=warn,webrtc-sctp=warn,webrtc=warn" }; if let Ok(x) = Logger::try_with_env_or_str(__lvl) {#' libs/hbb_common/src/lib.rs || true
+          grep -c 'debug.on' libs/hbb_common/src/lib.rs || true
           # iDiags: fully hide "powered by" in sciter UI (was only renamed above)
           sed -i 's/handler.get_builtin_option("hide-powered-by-me") != "Y"/false/' src/ui/index.tis || true
           echo "== iDiags sciter branding =="
