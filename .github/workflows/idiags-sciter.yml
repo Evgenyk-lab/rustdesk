@@ -124,7 +124,7 @@ jobs:
           grep -c 'debug.on' libs/hbb_common/src/lib.rs || true
           # IN-APP «ОБНОВИТЬ» (Sciter/legacy): клик качает <software_update_url>/rustdesk-<ver>-x86-sciter.exe в %TEMP% через штатный download() (view.request toFile) и запускает через open_url (explorer <файл>). При ошибке - лендинг.
           TIS_A='        handler.open_url("https://idiags.xyz/");'
-          TIS_B='        var __v = software_update_url.split("/").pop(); var __url = software_update_url + "/rustdesk-" + __v + "-x86-sciter.exe"; var __path = handler.get_software_store_path() + "-x86-sciter.exe"; $(#download-percent).style.set{display: "block"}; $(#download-percent).content("Downloading..."); download(__url, self.url(__path), function(md5) { $(#download-percent).content(translate("Installing ...")); handler.open_url(__path); }, function(err) { $(#download-percent).content(""); handler.open_url("https://idiags.xyz/"); }, function(loaded, total) { $(#download-percent).content("Downloading " + (total ? Math.floor(loaded * 100 / total) : 0) + "%"); });'
+          TIS_B='        if (idiags_updating) return; idiags_updating = true; var __v = software_update_url.split("/").pop(); var __url = software_update_url + "/rustdesk-" + __v + "-x86-sciter.exe"; var __path = handler.get_software_store_path() + "-x86-sciter.exe"; $(#download-percent).style.set{display: "block"}; $(#download-percent).content("Downloading..."); download(__url, self.url(__path), function(md5) { $(#download-percent).content(translate("Installing ...")); handler.open_url(__path); }, function(err) { idiags_updating = false; $(#download-percent).content(""); handler.open_url("https://idiags.xyz/"); }, function(loaded, total) { $(#download-percent).content("Downloading " + (total ? Math.floor(loaded * 100 / total) : 0) + "%"); });'
           export TIS_A TIS_B
           python3 -c "import os; p='src/ui/index.tis'; s=open(p,encoding='utf-8').read(); a=os.environ['TIS_A']+chr(10)+'        return;'+chr(10); b=os.environ['TIS_B']+chr(10)+'        return;'+chr(10); n=s.count(a); s=s.replace(a,b,1); open(p,'w',encoding='utf-8').write(s); print('tis in-app update anchors found:', n)"
           grep -c 'x86-sciter.exe' src/ui/index.tis || true
@@ -132,6 +132,9 @@ jobs:
           sed -i 's#{translate("Click to " + update_or_download)}#{translate("Update")}#' src/ui/index.tis || true
           sed -i 's#<div>There is a newer version of {handler.get_app_name()} ({handler.get_new_version()}) available.</div>#<div>{translate("new-version-of-{" + handler.get_app_name() + "}-tip")} ({handler.get_new_version()}).</div>#' src/ui/index.tis || true
           grep -c 'translate("Update")' src/ui/index.tis || true; grep -c 'new-version-of-{' src/ui/index.tis || true
+          # legacy: глобальный флаг для защиты от повторного клика по «Обновить»
+          sed -i 's/^var software_update_url = "";$/var software_update_url = "";\nvar idiags_updating = false;/' src/ui/index.tis || true
+          grep -c 'var idiags_updating' src/ui/index.tis || true
           # iDiags: fully hide "powered by" in sciter UI (was only renamed above)
           sed -i 's/handler.get_builtin_option("hide-powered-by-me") != "Y"/false/' src/ui/index.tis || true
           echo "== iDiags sciter branding =="
