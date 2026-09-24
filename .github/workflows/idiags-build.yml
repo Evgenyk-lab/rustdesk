@@ -27,7 +27,7 @@ env:
   # 2. Update the `VCPKG_COMMIT_ID` in `ci.yml` and `playground.yml`.
   VCPKG_COMMIT_ID: "120deac3062162151622ca4860575a33844ba10b"
   ARMV7_VCPKG_COMMIT_ID: "6f29f12e82a8293156836ad81cc9bf5af41fe836" # 2025.01.13, got "/opt/artifacts/vcpkg/vcpkg: No such file or directory" with latest version
-  VERSION: "1.4.11"
+  VERSION: ${{ inputs.version || '1.4.11' }}
   NDK_VERSION: "r28c"
   #signing keys env variable checks
   ANDROID_SIGNING_KEY: "${{ secrets.ANDROID_SIGNING_KEY }}"
@@ -40,6 +40,11 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "iDiags release version (Cargo/UI/artifacts)"
+        required: false
+        default: "1.4.11"
 
 permissions:
   contents: write
@@ -217,8 +222,8 @@ jobs:
           (grep -rl "rustdesk.com" flutter/lib --include=*.dart || true) | xargs -r sed -i "s#rustdesk.com#idiags.xyz#g" || true
           (grep -rl "rustdesk.com" src libs --include=*.rs || true) | xargs -r sed -i "s#rustdesk.com#idiags.xyz#g" || true
           # версия 1.4.11 (Cargo.toml + Cargo.lock, иначе cargo build --locked падает)
-          sed -i 's#^version = "1.4.9"#version = "1.4.11"#' Cargo.toml || true
-          sed -i '/^name = "rustdesk"$/{n;s/^version = "1.4.9"$/version = "1.4.11"/}' Cargo.lock || true
+          sed -i "s#^version = \"1.4.9\"#version = \"${VERSION}\"#" Cargo.toml || true
+          sed -i "/^name = \"rustdesk\"\$/{n;s/^version = \"1.4.9\"\$/version = \"${VERSION}\"/}" Cargo.lock || true
           sed -i 's#https://api.rustdesk.com/version/latest#https://api.idiags.xyz/version/latest#' libs/hbb_common/src/lib.rs || true
           # B: одноразовый пароль ПЕРСИСТЕНТНЫЙ (переживает перезапуск); регенерация кнопкой сохраняется
           # B v2: НИКАКОГО I/O в инициализаторе lazy_static (v1 роняла старт). Загрузка/первичное сохранение -
@@ -252,6 +257,11 @@ jobs:
           # ЛОГ КАК АДМИН-ОПЦИЯ: по умолчанию info; файл-флаг <log_path>/debug.on включает debug (RUST_LOG по-прежнему приоритетнее)
           sed -i 's#if let Ok(x) = Logger::try_with_env_or_str("debug,reqwest=warn,rustls=warn,webrtc-sctp=warn,webrtc=warn") {#let __lvl = if config::Config::log_path().join("debug.on").exists() { "debug,reqwest=warn,rustls=warn,webrtc-sctp=warn,webrtc=warn" } else { "info,reqwest=warn,rustls=warn,webrtc-sctp=warn,webrtc=warn" }; if let Ok(x) = Logger::try_with_env_or_str(__lvl) {#' libs/hbb_common/src/lib.rs || true
           grep -c 'debug.on' libs/hbb_common/src/lib.rs || true
+          # IN-APP «ОБНОВИТЬ» (Flutter): кнопка качает нашу обертку <updateUrl>/rustdesk-<ver>-x86_64.exe в %TEMP% и запускает ее (обертка гасит старый экземпляр, распаковывает, перезапускает). При ошибке - лендинг.
+          DART_UPD='try { final v = updateUrl.split("/").last; final name = "rustdesk-$v-x86_64.exe"; final f = File("${Directory.systemTemp.path}${Platform.pathSeparator}$name"); final req = await HttpClient().getUrl(Uri.parse("$updateUrl/$name")); final resp = await req.close(); if (resp.statusCode != 200) { throw Exception("HTTP ${resp.statusCode}"); } await resp.pipe(f.openWrite()); await Process.start(f.path, ["--update"], mode: ProcessStartMode.detached); } catch (e) { await launchUrl(Uri.parse("https://idiags.xyz/")); }'
+          export DART_UPD
+          python3 -c "import os,re; p='flutter/lib/desktop/pages/desktop_home_page.dart'; s=open(p,encoding='utf-8').read(); s2=re.sub(r'final Uri url = Uri\.parse\(.https://idiags\.xyz/.\);\s*await launchUrl\(url\);', lambda m: os.environ['DART_UPD'], s, count=1); s2=s2.replace(\"String btnText = isToUpdate ? 'Update' : 'Download';\", \"String btnText = 'Update';\", 1); open(p,'w',encoding='utf-8').write(s2); print('dart in-app update:', 'OK' if s2!=s else 'NO CHANGE')"
+          grep -c 'rustdesk-\$v-x86_64.exe' flutter/lib/desktop/pages/desktop_home_page.dart || true
           # iDiags: fully remove "powered by RustDesk" line (Flutter)
           sed -i "s/bind.mainGetBuildinOption(key: \"hide-powered-by-me\") == 'Y'/true/" flutter/lib/common.dart || true
           echo "== iDiags branding applied =="
